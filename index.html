@@ -799,12 +799,14 @@ function generatePDF(billData){
   doc.text('For, '+(settings.name||'My Business'), pw-m, y, {align:'right'});
   y += 4;
 
-  // SIGNATURE IMAGE
+  // SIGNATURE IMAGE - right aligned, positioned above "Authorised Signatory"
   if(settings.signature && settings.signature.length > 100){
     try{
       const sigFormat = settings.signature.indexOf('image/png') > -1 ? 'PNG' : 'JPEG';
-      doc.addImage(settings.signature, sigFormat, pw-m-35, y, 30, 15);
-      y += 17;
+      const sigW = 32, sigH = 16;
+      const sigX = pw - m - sigW;  // right-aligned to same edge as text
+      doc.addImage(settings.signature, sigFormat, sigX, y, sigW, sigH);
+      y += 18;
     }catch(e){ 
       console.error('Signature error:', e);
       alert('Signature error: ' + e.message);
