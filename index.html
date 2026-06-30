@@ -28,11 +28,14 @@ body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#f0f2f
 .fld input[readonly]{background:#f9fafb;color:#374151}
 
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table.items{width:100%;border-collapse:collapse;min-width:620px}
+table.items{width:100%;border-collapse:collapse;min-width:680px}
 table.items th{background:#1e3a5f;color:#fff;padding:7px 6px;font-size:11px;white-space:nowrap;text-align:center;border:1px solid #16305a}
 table.items td{padding:4px 5px;border:1px solid #e5e7eb;font-size:12px;vertical-align:middle}
 table.items td input,table.items td select{width:100%;border:1px solid #d1d5db;border-radius:4px;padding:5px 4px;font-size:12px;background:#fff;color:#1a1a1a}
 table.items td input:focus,table.items td select:focus{outline:none;border-color:#1a56db}
+table.items td input[type="number"]{-moz-appearance:textfield}
+table.items td input[type="number"]::-webkit-outer-spin-button,
+table.items td input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 table.items .del{background:none;border:none;cursor:pointer;color:#dc2626;font-size:18px;padding:0 4px;line-height:1}
 .add-item-btn{width:100%;margin-top:8px;padding:8px;background:none;border:1.5px dashed #94a3b8;border-radius:6px;cursor:pointer;font-size:13px;color:#6b7280;font-weight:600}
 .add-item-btn:hover{background:#f8fafc;border-color:#1a56db;color:#1a56db}
@@ -146,13 +149,13 @@ table.items .del{background:none;border:none;cursor:pointer;color:#dc2626;font-s
                 <th style="width:28px">Sr.</th>
                 <th style="min-width:120px">Name of Product</th>
                 <th style="width:65px">HSN/SAC</th>
-                <th style="width:140px">QTY</th>
-                <th style="width:100px">Rate (₹)</th>
-                <th style="width:80px">Taxable Value</th>
+                <th style="width:100px;min-width:100px">QTY</th>
+                <th style="width:80px;min-width:80px">Rate (₹)</th>
+                <th style="width:60px">Taxable Value</th>
                 <th style="width:52px">GST %</th>
                 <th style="width:58px">CGST Amt</th>
                 <th style="width:58px">SGST Amt</th>
-                <th style="width:110px">Total (₹)</th>
+                <th style="width:140px">Total (₹)</th>
                 <th style="width:28px"></th>
               </tr>
             </thead>
@@ -458,8 +461,8 @@ function addRow(){
     <td style="text-align:center;font-size:11px;color:#6b7280" id="rn${id}"></td>
     <td><input placeholder="Product name" oninput="calc(${id})"></td>
     <td><input placeholder="9988" oninput="calc(${id})"></td>
-    <td><input type="number" value="1" min="0" step="any" oninput="calc(${id})" style="text-align:center"></td>
-    <td><input type="number" value="0" min="0" step="any" oninput="calc(${id})"></td>
+    <td><input type="number" value="1" min="0" step="any" oninput="calc(${id})" style="text-align:center;min-width:70px"></td>
+    <td><input type="number" value="0" min="0" step="any" oninput="calc(${id})" style="min-width:50px"></td>
     <td><input readonly id="taxv${id}" value="0.00" style="background:#f9fafb;text-align:right"></td>
     <td><select onchange="calc(${id})">
       <option value="5">5%</option><option value="12">12%</option>
@@ -468,7 +471,7 @@ function addRow(){
     </select></td>
     <td><input readonly id="cgstv${id}" value="0.00" style="background:#f9fafb;text-align:right"></td>
     <td><input readonly id="sgstv${id}" value="0.00" style="background:#f9fafb;text-align:right"></td>
-    <td><input readonly id="totv${id}" value="0.00" style="background:#eef2ff;font-weight:700;text-align:right;color:#1a56db"></td>
+    <td><input readonly id="totv${id}" value="0.00" style="background:#eef2ff;font-weight:700;text-align:right;color:#1a56db;font-size:13px;min-width:100px"></td>
     <td style="text-align:center"><button class="del" onclick="delRow(${id})">×</button></td>
   `;
   document.getElementById('items-body').appendChild(tr);
@@ -711,13 +714,13 @@ function generatePDF(billData){
       1:{cellWidth:38},
       2:{cellWidth:14,halign:'center'},
       3:{cellWidth:15,halign:'center'},
-      4:{cellWidth:18,halign:'right'},
-      5:{cellWidth:22,halign:'right'},
+      4:{cellWidth:15,halign:'right'},
+      5:{cellWidth:18,halign:'right'},
       6:{cellWidth:11,halign:'center'},
       7:{cellWidth:16,halign:'right'},
       8:{cellWidth:11,halign:'center'},
       9:{cellWidth:16,halign:'right'},
-      10:{cellWidth:21,halign:'right'}
+      10:{cellWidth:25,halign:'right'}
     }
   });
   y = doc.lastAutoTable.finalY + 3;
