@@ -170,6 +170,17 @@ table.items .del{background:none;border:none;cursor:pointer;color:#dc2626;font-s
           <div class="tot-row"><span>Add: SGST</span><span id="t-sgst">₹0.00</span></div>
           <div class="tot-row"><span>Total Tax Amount</span><span id="t-tax">₹0.00</span></div>
           <div class="tot-row final"><span>Final Invoice Amount</span><span id="t-final">₹0.00</span></div>
+
+          <div class="tot-row" style="align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed #c7d2fe">
+            <span>Discount</span>
+            <span style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="inv-discount" value="0" min="0" max="100" step="0.01" onfocus="if(this.value==='0') this.value='';" onblur="if(this.value.trim()===''){this.value='0'; calcTotals();}" oninput="calcTotals()" style="width:64px;padding:5px 6px;border:1.5px solid #c7d2fe;border-radius:5px;font-size:13px;text-align:right;background:#fff">
+              <span style="font-weight:700;color:#374151">%</span>
+            </span>
+          </div>
+          <div class="tot-row"><span>Less: Discount Amount</span><span id="t-discamt" style="color:#dc2626">-₹0.00</span></div>
+          <div class="tot-row final" style="border-top:2px solid #059669;color:#059669"><span>Grand Total (Payable)</span><span id="t-grand">₹0.00</span></div>
+
           <div style="margin-top:6px;font-size:11px;color:#4b5563;font-style:italic" id="t-words">Zero Rupees Only /-</div>
         </div>
       </div>
@@ -461,8 +472,8 @@ function addRow(){
     <td style="text-align:center;font-size:11px;color:#6b7280" id="rn${id}"></td>
     <td><input placeholder="Product name" oninput="calc(${id})"></td>
     <td><input placeholder="9988" oninput="calc(${id})"></td>
-    <td><input type="number" value="1" min="0" step="any" oninput="calc(${id})" style="text-align:center;min-width:70px"></td>
-    <td><input type="number" value="0" min="0" step="any" oninput="calc(${id})" style="min-width:50px"></td>
+    <td><input type="number" value="1" min="0" step="any" onfocus="if(this.value==='1') this.value='';" onblur="if(this.value.trim()===''){this.value='1'; calc(${id});}" oninput="calc(${id})" style="text-align:center;min-width:70px"></td>
+    <td><input type="number" value="0" min="0" step="any" onfocus="if(this.value==='0') this.value='';" onblur="if(this.value.trim()===''){this.value='0'; calc(${id});}" oninput="calc(${id})" style="min-width:50px"></td>
     <td><input readonly id="taxv${id}" value="0.00" style="background:#f9fafb;text-align:right"></td>
     <td><select onchange="calc(${id})">
       <option value="5">5%</option><option value="12">12%</option>
@@ -523,12 +534,17 @@ function calcTotals(){
     tx += t; cg += t*gst/200;
   });
   const total = tx + cg*2;
+  const discPct = Math.min(100, Math.max(0, parseFloat(document.getElementById('inv-discount').value)||0));
+  const discAmt = total * discPct / 100;
+  const grand = total - discAmt;
   document.getElementById('t-taxable').textContent = '₹'+tx.toFixed(2);
   document.getElementById('t-cgst').textContent = '₹'+cg.toFixed(2);
   document.getElementById('t-sgst').textContent = '₹'+cg.toFixed(2);
   document.getElementById('t-tax').textContent = '₹'+(cg*2).toFixed(2);
   document.getElementById('t-final').textContent = '₹'+total.toFixed(2);
-  document.getElementById('t-words').textContent = toWords(Math.round(total));
+  document.getElementById('t-discamt').textContent = '-₹'+discAmt.toFixed(2);
+  document.getElementById('t-grand').textContent = '₹'+grand.toFixed(2);
+  document.getElementById('t-words').textContent = toWords(Math.round(grand));
 }
 
 function toWords(n){
@@ -570,6 +586,10 @@ function getBillData(){
   const items = getItemsData();
   let tx=0, cg=0;
   items.forEach(it=>{ tx+=it.taxable; cg+=it.cgst; });
+  const total = tx+cg*2;
+  const discPct = Math.min(100, Math.max(0, parseFloat(document.getElementById('inv-discount').value)||0));
+  const discAmt = total * discPct / 100;
+  const grandTotal = total - discAmt;
   return {
     invNo: g('inv-no'), invDate: g('inv-date'), state: g('inv-state'),
     rc: document.getElementById('inv-rc').value,
@@ -577,7 +597,7 @@ function getBillData(){
     cName: g('c-name'), cMobile: g('c-mobile'), cAddr: g('c-addr'),
     cGstin: g('c-gstin'), cState: g('c-state'),
     terms: document.getElementById('inv-terms').value.trim(),
-    items, taxable:tx, cgst:cg, sgst:cg, total:tx+cg*2
+    items, taxable:tx, cgst:cg, sgst:cg, total, discPct, discAmt, grandTotal
   };
 }
 
@@ -597,6 +617,7 @@ function saveBill(){
 function clearForm(){
   if(!confirm('Clear all fields?')) return;
   ['c-name','c-mobile','c-addr','c-gstin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inv-discount').value = 0;
   document.getElementById('items-body').innerHTML='';
   rowId=0; addRow(); addRow(); addRow(); calcTotals();
 }
@@ -604,6 +625,9 @@ function clearForm(){
 function generatePDF(billData){
   const d = billData || getBillData();
   if(!d.items || !d.items.length){ alert('Please add at least one product.'); return; }
+  const discPct = d.discPct||0;
+  const discAmt = d.discAmt||0;
+  const grandTotal = (d.grandTotal!==undefined) ? d.grandTotal : d.total;
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
@@ -731,7 +755,6 @@ function generatePDF(billData){
   const wordsBoxH = 16;
   const bankBoxH = 25;
   const fullLeftH = wordsBoxH + bankBoxH;
-  const sumRowH = (fullLeftH - 9) / 4;
 
   doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
 
@@ -741,7 +764,7 @@ function generatePDF(billData){
   doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(30,58,95);
   doc.text('Total Invoice Amount in words', m+3, y+5);
   doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(40,40,40);
-  const wlines = doc.splitTextToSize(toWords(Math.round(d.total)), lw-6);
+  const wlines = doc.splitTextToSize(toWords(Math.round(grandTotal)), lw-6);
   doc.text(wlines, m+3, y+12);
 
   // Bank Account Details box (below words box)
@@ -767,6 +790,10 @@ function generatePDF(billData){
     ['Add : SGST', 'Rs. '+d.sgst.toFixed(2)],
     ['Total Tax', 'Rs. '+(d.cgst+d.sgst).toFixed(2)],
   ];
+  if(discAmt > 0){
+    sumItems.push(['Discount ('+discPct+'%)', '- Rs. '+discAmt.toFixed(2)]);
+  }
+  const sumRowH = (fullLeftH - 9) / sumItems.length;
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(40,40,40);
   doc.setDrawColor(200,200,200); doc.setLineWidth(0.2);
   sumItems.forEach((row,i)=>{
@@ -778,11 +805,21 @@ function generatePDF(billData){
   y += fullLeftH + 3;
 
   // FINAL AMOUNT BAR
+  if(discAmt > 0){
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,60,60);
+    doc.text('Final Invoice Amount (Before Discount)', m+2, y+4);
+    doc.text('Rs. '+d.total.toFixed(2), pw-m-2, y+4, {align:'right'});
+    y += 5;
+    doc.setTextColor(220,38,38);
+    doc.text('Less: Discount ('+discPct+'%)', m+2, y+4);
+    doc.text('- Rs. '+discAmt.toFixed(2), pw-m-2, y+4, {align:'right'});
+    y += 6;
+  }
   doc.setFillColor(30,58,95);
   doc.rect(m, y, pw-m*2, 8, 'F');
   doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-  doc.text('Final Invoice Amount', m+4, y+5.5);
-  doc.text('Rs. '+d.total.toFixed(2), pw-m-4, y+5.5, {align:'right'});
+  doc.text(discAmt > 0 ? 'Grand Total (Payable Amount)' : 'Final Invoice Amount', m+4, y+5.5);
+  doc.text('Rs. '+grandTotal.toFixed(2), pw-m-4, y+5.5, {align:'right'});
   y += 11;
 
   // TERMS
@@ -839,17 +876,18 @@ function renderBills(){
   let total=0, month=0;
   let html='';
   bills.forEach(b=>{
-    total += b.total||0;
+    const amt = (b.grandTotal!==undefined) ? b.grandTotal : (b.total||0);
+    total += amt;
     const bd = new Date(b.createdAt);
-    if(bd.getMonth()===now.getMonth()&&bd.getFullYear()===now.getFullYear()) month+=b.total||0;
+    if(bd.getMonth()===now.getMonth()&&bd.getFullYear()===now.getFullYear()) month+=amt;
     html += `<div class="bill-card">
       <div class="bill-top">
         <div>
           <div class="bill-no">Invoice #${b.invNo}</div>
-          <div class="bill-meta">${formatDate(b.invDate)} &nbsp;|&nbsp; ${b.cName||'No name'} &nbsp;|&nbsp; ${(b.items||[]).length} item(s)</div>
+          <div class="bill-meta">${formatDate(b.invDate)} &nbsp;|&nbsp; ${b.cName||'No name'} &nbsp;|&nbsp; ${(b.items||[]).length} item(s)${b.discPct?' &nbsp;|&nbsp; '+b.discPct+'% off':''}</div>
         </div>
         <div style="text-align:right">
-          <div class="bill-amt">₹${(b.total||0).toFixed(2)}</div>
+          <div class="bill-amt">₹${amt.toFixed(2)}</div>
           <span class="${b.paid?'badge-paid':'badge-due'}">${b.paid?'Paid':'Due'}</span>
         </div>
       </div>
